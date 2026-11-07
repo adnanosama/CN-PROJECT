@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Routing Simulator: Execution Guide</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root{--bg:#0e1621;--panel:#152131;--line:#26374d;--text:#d9e3ef;--muted:#8da0b6;--ls:#4cc3b5;--dv:#eba43d;--bad:#f0685a;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px);background:#0e1621}
+*,*:before,*:after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.6 "IBM Plex Sans",system-ui,sans-serif}
+.wrap{max-width:860px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:1.9rem;line-height:1.2;margin:8px 0 6px}
+h2{font-size:1.3rem;margin:0 0 10px}
+h3{font-size:1.05rem;margin:0 0 6px}
+p{margin:0 0 12px;max-width:70ch}
+.sub{color:var(--muted);margin-bottom:18px}
+nav{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:18px;border-bottom:1px solid var(--line)}
+nav button{flex:none;background:none;color:var(--muted);border:1px solid transparent;border-radius:6px;padding:8px 12px;font:inherit;cursor:pointer}
+nav button[aria-selected=true]{color:var(--text);border-color:var(--line);background:var(--panel)}
+button:focus-visible,input:focus-visible{outline:2px solid var(--dv);outline-offset:2px}
+section{display:none}section.on{display:block}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:16px}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.row>*{flex:1 1 240px}
+.ctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:12px 0}
+.btn{background:var(--line);color:var(--text);border:0;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer}
+.btn.go{background:var(--dv);color:#1a1204;font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:600}
+.mono{font-family:"IBM Plex Mono",ui-monospace,monospace}
+.scroll{overflow-x:auto;max-height:260px;overflow-y:auto}
+.ls{color:var(--ls)}.dv{color:var(--dv)}.bad{color:var(--bad)}
+.verdict{margin-top:10px;font-weight:600}
+.tl{list-style:none;margin:0;padding:0;border-left:2px solid var(--line)}
+.tl li{padding:0 0 18px 18px;position:relative}
+.tl li:before{content:"";position:absolute;left:-7px;top:7px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:2px solid var(--dv)}
+.chk{display:flex;gap:10px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.chk input{margin-top:5px;accent-color:var(--ls)}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin:6px 0 12px}
+.bar i{display:block;height:100%;width:0;background:var(--ls);transition:width .25s}
+svg text{fill:var(--text);font-family:"IBM Plex Sans",system-ui,sans-serif}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Routing simulator: how the project fits together</h1>
+<p class="sub">You build a small internet in Python, let two routing methods fight over it, then check your results against real routers.</p>
+<nav role="tablist" id="tabs"></nav>
+
+<section id="s0">
+<h2>Watch distance-vector break</h2>
+<p>Three routers. Y and Z both reach X. Y's direct link to X costs 4, Z's direct link costs 50, and Y–Z costs 1. Then the Y–X link jumps to 60. Each round, every router sends its distance to X to its neighbour and recomputes. Step through it, then turn on poisoned reverse and run it again.</p>
+<div class="box row">
+<svg viewBox="0 0 260 150" role="img" aria-label="Triangle: X to Y cost 60 after change, Y to Z cost 1, X to Z cost 50">
+<line x1="40" y1="110" x2="130" y2="25" stroke="#eba43d" stroke-width="2"/>
+<line x1="130" y1="25" x2="220" y2="110" stroke="#4cc3b5" stroke-width="2"/>
+<line x1="40" y1="110" x2="220" y2="110" stroke="#8da0b6" stroke-width="2"/>
+<circle cx="40" cy="110" r="16" fill="#0e1621" stroke="#d9e3ef"/><text x="34" y="115">X</text>
+<circle cx="130" cy="25" r="16" fill="#0e1621" stroke="#d9e3ef"/><text x="125" y="30">Y</text>
+<circle cx="220" cy="110" r="16" fill="#0e1621" stroke="#d9e3ef"/><text x="215" y="115">Z</text>
+<text x="52" y="62" font-size="13">4 → 60</text><text x="178" y="62" font-size="13">1</text><text x="122" y="132" font-size="13">50</text>
+</svg>
+<div>
+<label class="chk" style="border:0;padding:0"><input type="checkbox" id="pr"><span>Poisoned reverse on</span></label>
+<div class="ctl"><button class="btn go" id="step">Next round</button><button class="btn" id="run">Run to the end</button><button class="btn" id="reset">Reset</button></div>
+<div class="verdict" id="verdict" aria-live="polite"></div>
+</div>
+</div>
+<div class="box scroll"><table><thead><tr><th>Round</th><th>Y's cost to X</th><th>Z's cost to X</th><th>Y goes via</th><th>Z goes via</th></tr></thead><tbody id="rows" class="mono"></tbody></table></div>
+<p>Without poisoned reverse, Y trusts Z's old news and Z trusts Y's, so the numbers climb by two every couple of rounds until Z's direct 50 finally wins. With it, Z tells Y "I can't reach X" whenever Z's route goes through Y, so Y never falls for the loop. The correct end state is Y 51, Z 50. Your simulator has to reproduce both runs and count the rounds and messages.</p>
+</section>
+
+<section id="s1">
+<h2>The two halves of the project</h2>
+<div class="box">
+<svg viewBox="0 0 760 250" role="img" aria-label="Simulator pipeline on top, FRR validation on bottom, both feeding a comparison" style="width:100%;height:auto">
+<g font-size="14" stroke-width="1.5">
+<rect x="10" y="20" width="130" height="50" rx="6" fill="#152131" stroke="#8da0b6"/><text x="22" y="50">Topology file</text>
+<rect x="170" y="20" width="130" height="50" rx="6" fill="#152131" stroke="#8da0b6"/><text x="186" y="40">Event queue</text><text x="186" y="58" font-size="12" fill="#8da0b6">simulated clock</text>
+<rect x="330" y="8" width="150" height="32" rx="6" fill="#152131" stroke="#4cc3b5"/><text x="342" y="29" fill="#4cc3b5">LS agents + Dijkstra</text>
+<rect x="330" y="50" width="150" height="32" rx="6" fill="#152131" stroke="#eba43d"/><text x="342" y="71" fill="#eba43d">DV agents + Bellman-Ford</text>
+<rect x="510" y="20" width="130" height="50" rx="6" fill="#152131" stroke="#8da0b6"/><text x="526" y="40">Metrics</text><text x="526" y="58" font-size="12" fill="#8da0b6">time, msgs, bytes</text>
+<rect x="10" y="150" width="130" height="50" rx="6" fill="#152131" stroke="#8da0b6"/><text x="22" y="180">Same topology</text>
+<rect x="170" y="150" width="130" height="50" rx="6" fill="#152131" stroke="#8da0b6"/><text x="182" y="170">FRR routers</text><text x="182" y="188" font-size="12" fill="#8da0b6">ospfd + ripd</text>
+<rect x="330" y="150" width="150" height="50" rx="6" fill="#152131" stroke="#8da0b6"/><text x="342" y="170">Real routing tables</text><text x="342" y="188" font-size="12" fill="#8da0b6">+ convergence time</text>
+<rect x="580" y="95" width="170" height="50" rx="6" fill="#152131" stroke="#f0685a"/><text x="596" y="125" fill="#f0685a">Compare path costs</text>
+</g>
+<g stroke="#8da0b6" stroke-width="1.5" fill="none"><path d="M140 45H170M300 45H330M480 45H510M140 175H170M300 175H330"/><path d="M640 45L665 95M480 175L580 130"/></g>
+</svg>
+<p style="margin-top:10px">Routers never read global state. A router knows its own links and talks only by sending messages over them. That is what makes the simulator a true distributed protocol, and it is the one rule you cannot bend.</p>
+</div>
+<div class="row">
+<div class="box"><h3 class="ls">Link-state (OSPF-like)</h3><p>Each router floods a sequence-numbered advertisement of its links. Everyone ends up with the same map and runs Dijkstra locally. Fast and loop-free, but it costs more messages and memory.</p></div>
+<div class="box"><h3 class="dv">Distance-vector (RIP-like)</h3><p>Each router tells neighbours its distance to every destination and applies Bellman-Ford. Simple and cheap, but slow to react to bad news and prone to count-to-infinity.</p></div>
+</div>
+<div class="box"><h3>What gets measured</h3><p>Convergence time and rounds, messages and bytes, how long count-to-infinity lasts, how well your costs match FRR, and how all of it scales at 10, 50 and 200 nodes.</p></div>
+</section>
+
+<section id="s2">
+<h2>Who owns what</h2>
+<p>Agree three things in week 1 and do not change them later: the topology file format, the node interface (on_start, on_message, on_link_change, sim.send), and the routing table format. Everything plugs into those.</p>
+<div class="row">
+<div class="box"><h3>Zaid Zubair</h3><p class="mono">F1, F2, F5</p><p>Simulation core, topology loader and random graphs, link events.</p><p class="ls">Done when: dummy nodes run on the engine and a script can fail, recover and re-cost a link.</p></div>
+<div class="box"><h3>Adnan Osama</h3><p class="mono">F3, F6, F7 (OSPF)</p><p>LSA flooding, Dijkstra, metrics collector, OSPF in FRR and its comparison.</p><p class="ls">Done when: LS tables on a textbook graph match ospfd's tables.</p></div>
+<div class="box"><h3>Atta Ur Rehman</h3><p class="mono">F4, F7 (RIP), F8</p><p>Bellman-Ford DV with poisoned reverse switch, RIP in FRR, experiment runner and plots.</p><p class="ls">Done when: the 3-node example reproduces both runs from the demo tab.</p></div>
+</div>
+</section>
+
+<section id="s3">
+<h2>Five weeks</h2>
+<ul class="tl">
+<li><h3>Week 1: contract and setup</h3>Study OSPF and RIP behaviour, freeze the shared contract. Zaid starts the core and loader. Adnan and Atta get FRR and containerlab running, each with one router pair talking.</li>
+<li><h3>Week 2: protocols on fake loops</h3>Zaid adds link events. Adnan has flooding and Dijkstra working, plus the metrics hook. Atta has basic DV working. Each tests with a small fake message loop, so nobody waits on the engine.</li>
+<li><h3>Week 3: integration</h3>Zaid ships the random generator and the count-to-infinity script, then hands over the engine. Atta adds poisoned reverse. Both FRR labs can export routing tables.</li>
+<li><h3>Week 4: validation</h3>Adnan compares LS with OSPF, Atta compares DV with RIP. Atta starts the scalability runs. Zaid fixes engine bugs and cross-checks metrics.</li>
+<li><h3>Week 5: results and paperwork</h3>Finish plots, take the pcap captures, write the report and README, rehearse the demo. Optional extras only if everything else is done.</li>
+</ul>
+</section>
+
+<section id="s4">
+<h2>Where validation usually goes wrong</h2>
+<div class="box"><table>
+<tr><th>Trap</th><th>What to do</th></tr>
+<tr><td>RIP counts hops and treats 16 as infinity</td><td>Use unit costs when comparing DV with RIP, and keep paths under 15 hops. Your own DV can use real costs for the other experiments.</td></tr>
+<tr><td>OSPF uses configurable interface costs</td><td>Set each FRR interface cost to match the simulator's link cost, or the tables will never agree.</td></tr>
+<tr><td>Equal-cost paths</td><td>Compare total path cost, not the exact next hop. Two correct answers can differ.</td></tr>
+<tr><td>Real timers are slow</td><td>RIP updates every 30 seconds by default and OSPF delays its SPF runs. Note the timers you use and tune them down. Compare the shape of convergence, not raw seconds.</td></tr>
+<tr><td>200 nodes in FRR</td><td>Not realistic on a laptop. Validate on about 5 to 10 routers and use the large graphs for simulator scaling only.</td></tr>
+<tr><td>Cherry-picked runs</td><td>The brief wants each metric under at least 3 conditions, at least 3 runs each, with mean and spread. Seed your random graphs and log the seed.</td></tr>
+</table></div>
+</section>
+
+<section id="s5">
+<h2>What you hand in</h2>
+<p>Tick items off as you finish them.</p>
+<div class="bar"><i id="pbar"></i></div><div id="pcount" class="mono"></div>
+<div class="box" id="list"></div>
+</section>
+
+<p class="sub" style="margin-top:24px">This guide covers understanding and execution. Ask separately for the step-by-step build.</p>
+</div>
+<script>
+var TABS=["Count to infinity","The big picture","Who owns what","Five weeks","Validation traps","Checklist"];
+var nav=document.getElementById("tabs");
+function show(i){TABS.forEach(function(_,k){document.getElementById("s"+k).classList.toggle("on",k===i);nav.children[k].setAttribute("aria-selected",k===i)})}
+TABS.forEach(function(t,i){var b=document.createElement("button");b.textContent=t;b.setAttribute("role","tab");b.onclick=function(){show(i)};nav.appendChild(b)});
+show(0);
+
+var INF=1000,st;
+function init(){st={r:0,dy:4,dz:5,ny:"X",nz:"Y",done:false,log:[]};st.log.push(row());document.getElementById("verdict").textContent="";render()}
+function row(){return [st.r,st.dy,st.dz,st.ny,st.nz]}
+function next(){
+ if(st.done)return;
+ var pr=document.getElementById("pr").checked;
+ var advY=(pr&&st.ny==="Z")?INF:st.dy, advZ=(pr&&st.nz==="Y")?INF:st.dz;
+ var y=60,ny="X"; if(1+advZ<y){y=1+advZ;ny="Z"}
+ var z=50,nz="X"; if(1+advY<z){z=1+advY;nz="Y"}
+ var same=(y===st.dy&&z===st.dz&&ny===st.ny&&nz===st.nz);
+ st.r++;st.dy=y;st.dz=z;st.ny=ny;st.nz=nz;
+ if(same){st.done=true;st.r--;document.getElementById("verdict").innerHTML=
+  "Settled after "+(st.r-0)+" rounds, "+(st.r*2)+" messages. "+(st.dy===51&&st.dz===50?"<span class='ls'>Correct: Y 51, Z 50.</span>":"<span class='bad'>Wrong costs.</span>");return render()}
+ st.log.push(row());render();
+}
+function render(){document.getElementById("rows").innerHTML=st.log.map(function(r){return "<tr><td>"+r[0]+"</td><td>"+r[1]+"</td><td>"+r[2]+"</td><td>"+r[3]+"</td><td>"+r[4]+"</td></tr>"}).join("");
+ var box=document.querySelector("#s0 .scroll");box.scrollTop=box.scrollHeight}
+st={r:0,dy:4,dz:5,ny:"X",nz:"Y",done:false,log:[]};
+document.getElementById("step").onclick=function(){
+ if(st.r===0&&st.log.length===1){st.log=[];st.dy=4;st.dz=5;st.log.push(row());}
+ next()};
+document.getElementById("run").onclick=function(){var n=0;while(!st.done&&n<400){next();n++}};
+document.getElementById("reset").onclick=init;
+document.getElementById("pr").onchange=init;
+init();
+
+var ITEMS=["Proposal submitted","Architecture diagram with subnets, IPs, ports and devices","Working demo, run live (simulator plus FRR lab)","Routing tables and one traceroute shown from the FRR topology","One saved .pcapng per key exchange (OSPF, RIP) with annotated screenshots","Experiment table: each metric under 3 or more conditions, 3 or more runs, mean and spread","Technical report, 6 to 10 pages","README that lets another group reproduce the setup and runs","AI-use disclosure"];
+var done=[];try{done=JSON.parse(localStorage.getItem("cn18")||"[]")}catch(e){}
+var list=document.getElementById("list");
+ITEMS.forEach(function(t,i){var l=document.createElement("label");l.className="chk";var c=document.createElement("input");c.type="checkbox";c.checked=done.indexOf(i)>-1;
+ c.onchange=function(){var k=done.indexOf(i);if(c.checked&&k<0)done.push(i);if(!c.checked&&k>-1)done.splice(k,1);try{localStorage.setItem("cn18",JSON.stringify(done))}catch(e){}prog()};
+ var s=document.createElement("span");s.textContent=t;l.appendChild(c);l.appendChild(s);list.appendChild(l)});
+function prog(){document.getElementById("pbar").style.width=(done.length/ITEMS.length*100)+"%";document.getElementById("pcount").textContent=done.length+" of "+ITEMS.length+" done"}
+prog();
+</script>
+</body>
+</html>
