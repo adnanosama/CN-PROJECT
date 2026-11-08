@@ -1,0 +1,10 @@
+{"nodes": ["A", "B", "C", "D", "E"],
+ "links": [
+  {"a": "A", "b": "B", "cost": 1, "delay": 1.0},
+  {"a": "A", "b": "C", "cost": 4, "delay": 1.0},
+  {"a": "B", "b": "C", "cost": 2, "delay": 1.0},
+  {"a": "B", "b": "D", "cost": 5, "delay": 1.0},
+  {"a": "C", "b": "D", "cost": 1, "delay": 1.0},
+  {"a": "C", "b": "E", "cost": 3, "delay": 1.0},
+  {"a": "D", "b": "E", "cost": 2, "delay": 1.0}
+ ]}
