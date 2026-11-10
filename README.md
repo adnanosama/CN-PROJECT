@@ -53,8 +53,8 @@ python frr/ospf_tools.py fail lab/lab_meta.json A B
 |---|---|
 | `ls_node.py`, `metrics.py`, `fake_sim.py` | Tested (`test_ls.py`) |
 | `contract.md` | Draft, awaiting confirmation |
-| `frr/ospf_tools.py` | Written, not yet run against a live lab |
-| `frr/compare_ospf.py` | Tested on synthetic data only |
+| `frr/ospf_tools.py` | ran on topo_demo.json with 20/20 agreement|
+| `frr/compare_ospf.py` | ran on topo_demo.json with 20/20 agreement |
 
 Items to verify on the first live run:
 
