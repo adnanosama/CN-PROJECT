@@ -53,13 +53,11 @@ python frr/ospf_tools.py fail lab/lab_meta.json A B
 |---|---|
 | `ls_node.py`, `metrics.py`, `fake_sim.py` | Tested (`test_ls.py`) |
 | `contract.md` | Draft, awaiting confirmation |
-| `frr/ospf_tools.py` | ran on topo_demo.json with 20/20 agreement|
-| `frr/compare_ospf.py` | ran on topo_demo.json with 20/20 agreement |
+| `frr/ospf_tools.py` | Run on topo_demo.json: lab deployed, tables extracted, failure timed (1.63s)|
+| `frr/compare_ospf.py` |  Run on topo_demo.json: 20/20 routes agree with FRR OSPF |
 
 Items to verify on the first live run:
 
-- The FRR image tag in `ospf_tools.py` (`IMAGE`) exists and can be pulled.
-- Whether FRR includes the loopback's cost in the OSPF metric. `compare_ospf.py` assumes 1 and warns if the observed offset differs.
 - The `timers throttle spf` line and the `ip addr add` exec lines are accepted. `docker logs clab-ospf-lab-r1` shows the reason if a router fails to start.
 - Real OSPF and the simulator will not agree on convergence time in seconds. Compare how the shape and message counts scale, not the raw numbers.
 
