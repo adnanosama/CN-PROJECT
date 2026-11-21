@@ -56,7 +56,7 @@ python frr/ospf_tools.py fail lab/lab_meta.json A B
 | `engine.py`, `topology.py` | Tested (`test_engine.py`); link-state runs on it (`run_ls_demo.py`) |
 | `frr/ospf_tools.py` | Run on `topo_demo.json`: lab deployed, tables extracted, failure timed (1.63 s) |
 | `frr/compare_ospf.py` | Run on `topo_demo.json`: 20/20 routes agree with FRR OSPF |
-| `contract.md` | Draft v0.2, awaiting confirmation from all members |
+| `contract.md` | Draft v0.2 |
 
 ## Integration
 
