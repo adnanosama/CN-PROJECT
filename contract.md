@@ -1,6 +1,6 @@
-# Shared contract (draft v0.2)
+# Shared contract (v0.2)
 
-Status: draft, to be confirmed by all three members. v0.2 keeps everything in v0.1 and adds the engine behaviour that `engine.py` and `topology.py` already implement, plus node options. Once confirmed it is frozen.
+Status: confirmed
 
 ## Topology file (JSON)
 
