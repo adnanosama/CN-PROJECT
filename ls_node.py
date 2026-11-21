@@ -8,17 +8,17 @@ import heapq
 
 
 class LSNode:
-    def __init__(self, node_id, sim, spf_delay=0.1):
+    def __init__(self, node_id, sim, spf_holddown=0.1):
         self.id = node_id
         self.sim = sim
-        self.spf_delay = spf_delay   # hold-down before running Dijkstra, like OSPF's SPF throttle
+        self.spf_holddown = spf_holddown   # hold-down before running Dijkstra, like OSPF's SPF throttle
         self.links = {}              # neighbor -> cost (links that are up)
         self.seq = 0
         self.lsdb = {}               # origin -> (seq, {neighbor: cost})
         self.table = {}              # dest -> (next_hop, cost)
         self._spf_pending = False
 
-    # engine callbacks 
+    # ---- engine callbacks -------------------------------------------------
     def on_start(self):
         self.links = dict(self.sim.neighbors(self.id))
         self._originate()
@@ -51,7 +51,7 @@ class LSNode:
                 if origin != self.id:
                     self.sim.send(self.id, neighbor_id, self._lsa(origin, seq, links))
 
-    # flooding 
+    # ---- flooding ---------------------------------------------------------
     @staticmethod
     def _lsa(origin, seq, links):
         return {"type": "LSA", "origin": origin, "seq": seq, "links": dict(links)}
@@ -67,12 +67,12 @@ class LSNode:
             if nbr != exclude:
                 self.sim.send(self.id, nbr, msg)
 
-    # shortest paths 
+    # ---- shortest paths ---------------------------------------------------
     def _request_spf(self):
         if self._spf_pending:
             return
         self._spf_pending = True
-        self.sim.schedule(self.spf_delay, self._run_spf)
+        self.sim.schedule(self.spf_holddown, self._run_spf)
 
     def _run_spf(self):
         self._spf_pending = False
