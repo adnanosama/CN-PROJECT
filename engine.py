@@ -40,6 +40,24 @@ def _t(x):
     return round(x, TIME_DIGITS)
 
 
+_ATOMS = {str, int, float, bool, type(None), bytes}
+
+
+def _copy_msg(x):
+    """Independent copy of a message. Much faster than copy.deepcopy for the usual
+    dict/list/tuple/number/string messages; anything else falls back to deepcopy."""
+    t = type(x)
+    if t in _ATOMS:
+        return x
+    if t is dict:
+        return {k: _copy_msg(v) for k, v in x.items()}
+    if t is list:
+        return [_copy_msg(v) for v in x]
+    if t is tuple:
+        return tuple(_copy_msg(v) for v in x)
+    return copy.deepcopy(x)
+
+
 class _Link:
     __slots__ = ("cost", "delay", "up", "epoch")
 
@@ -89,7 +107,7 @@ class Sim:
         if self.metrics is not None:
             self.metrics.on_send(self.now, src, dst, msg)
         self.stats["sent"] += 1
-        msg = copy.deepcopy(msg)
+        msg = _copy_msg(msg)
         epoch = link.epoch
         self._push(link.delay, lambda: self._deliver(src, dst, msg, link, epoch))
 
