@@ -2,3 +2,5 @@ __pycache__/
 lab/
 *.pyc
 ~$*
+sim_tables.json
+frr_tables.json
