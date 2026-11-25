@@ -201,6 +201,20 @@ class EngineTests(unittest.TestCase):
         sim.run()
         self.assertEqual(sim.nodes["B"].msgs()[0][3], {"type": "x", "v": [1]})
 
+    def test_copy_is_deep_for_nested_and_unusual_messages(self):
+        sim = self.make()
+        sim.start()
+        msg = {"type": "x", "d": {"k": [1, {"z": 2}]}, "t": (1, [2]), "s": {1, 2}, "n": None}
+        sim.send("A", "B", msg)
+        msg["d"]["k"][1]["z"] = 99
+        msg["t"][1].append(3)
+        msg["s"].add(3)
+        sim.run()
+        got = sim.nodes["B"].msgs()[0][3]
+        self.assertEqual(got, {"type": "x", "d": {"k": [1, {"z": 2}]}, "t": (1, [2]),
+                               "s": {1, 2}, "n": None})
+        self.assertIsInstance(got["t"], tuple)
+
     def test_report_table_dedup_copy_and_no_initial_empty(self):
         sim = self.make()
         sim.start()
