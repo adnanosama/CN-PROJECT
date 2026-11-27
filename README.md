@@ -84,7 +84,7 @@ Recovery is slower and varies more because the returning link first has to form 
 | `contract.md` | v0.2, confirmed by all members |
 | `ls_node.py`, `metrics.py`, `fake_sim.py` | Tested (`test_ls.py`) |
 | `engine.py`, `topology.py` | Tested (`test_engine.py`); link-state runs on it (`run_ls_demo.py`) |
-| `graphgen.py`, `count_to_infinity.py` | Covered by `test_scenarios.py` |
+| graphgen.py, count_to_infinity.py | Tested (test_scenarios.py) |
 | `frr/ospf_tools.py`, `frr/compare_ospf.py` | Run on `topo_demo.json`: 20/20 agreement, benchmark and captures done |
 | `dv_node.py`, RIP lab, experiment runner | In progress (Atta) |
 
