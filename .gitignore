@@ -4,3 +4,4 @@ lab/
 ~$*
 sim_tables.json
 frr_tables.json
+*.docx
