@@ -5,8 +5,12 @@
   sudo containerlab deploy -t lab/ospf-lab.clab.yml
   python3 ospf_tools.py extract lab/lab_meta.json frr_tables.json
   python3 ospf_tools.py fail lab/lab_meta.json A B         # take link A-B down, time convergence
+  python3 ospf_tools.py recover lab/lab_meta.json A B      # bring it back, time convergence
+  python3 ospf_tools.py cost lab/lab_meta.json A B 20      # change the OSPF cost on both ends, time convergence
+  python3 ospf_tools.py bench lab/lab_meta.json A B --runs 3   # fail/recover/cost up/cost down x3, mean and spread
 """
 import argparse
+import statistics
 import ipaddress
 import json
 import os
@@ -114,21 +118,71 @@ def snapshot(meta):
         return dict(ex.map(one, nodes))
 
 
-def fail(meta, a, b, quiet):
-    lk = next(l for l in meta["links"] if {l["a"], l["b"]} == {a, b})
-    before = snapshot(meta)
+def _link(meta, a, b):
+    return next(l for l in meta["links"] if {l["a"], l["b"]} == {a, b})
+
+
+def _docker(meta, node, *cmd):
+    subprocess.run(["docker", "exec", f"clab-{meta['lab']}-{meta['name'][node]}", *cmd], check=True)
+
+
+def do_fail(meta, a, b):
+    lk = _link(meta, a, b)
+    _docker(meta, lk["a"], "ip", "link", "set", lk["if_a"], "down")
+
+
+def do_recover(meta, a, b):
+    lk = _link(meta, a, b)
+    _docker(meta, lk["a"], "ip", "link", "set", lk["if_a"], "up")
+
+
+def do_cost(meta, a, b, cost):
+    lk = _link(meta, a, b)
+    for node, ifn in ((lk["a"], lk["if_a"]), (lk["b"], lk["if_b"])):
+        _docker(meta, node, "vtysh", "-c", "configure terminal", "-c", f"interface {ifn}",
+                "-c", f"ip ospf cost {cost}")
+
+
+def timed(meta, action, quiet):
+    """Run action(), then poll until the routing tables stop changing for `quiet` seconds.
+    Returns seconds from the action to the last table change."""
+    prev = snapshot(meta)
     t0 = time.time()
-    subprocess.run(["docker", "exec", f"clab-{meta['lab']}-{meta['name'][lk['a']]}",
-                    "ip", "link", "set", lk["if_a"], "down"], check=True)
-    last_change, prev = t0, before
-    while time.time() - last_change < quiet:
+    action()
+    last = t0
+    while time.time() - last < quiet:
         cur = snapshot(meta)
         if cur != prev:
-            last_change, prev = time.time(), cur
+            last, prev = time.time(), cur
         time.sleep(0.1)
-    print(f"link {a}-{b} down: tables stopped changing {last_change - t0:.2f}s after the failure "
-          f"(polling granularity is roughly the time one snapshot takes)")
-    return prev
+    return last - t0
+
+
+def bench(meta, a, b, runs, quiet, bump, out):
+    orig = _link(meta, a, b)["cost"]
+    do_recover(meta, a, b)                   # make sure the link starts up
+    do_cost(meta, a, b, orig)
+    time.sleep(quiet)
+    steps = [("fail", lambda: do_fail(meta, a, b)),
+             ("recover", lambda: do_recover(meta, a, b)),
+             ("cost_up", lambda: do_cost(meta, a, b, orig * bump)),
+             ("cost_down", lambda: do_cost(meta, a, b, orig))]
+    res = {name: [] for name, _ in steps}
+    for i in range(runs):
+        line = []
+        for name, fn in steps:
+            t = round(timed(meta, fn, quiet), 3)
+            res[name].append(t)
+            line.append(f"{name} {t}s")
+        print(f"run {i + 1}: " + ", ".join(line))
+    summary = {n: {"runs": v, "mean": round(statistics.mean(v), 3),
+                   "stdev": round(statistics.stdev(v), 3) if len(v) > 1 else 0.0} for n, v in res.items()}
+    for n, s in summary.items():
+        print(f"{n:10s} mean {s['mean']}s  stdev {s['stdev']}s")
+    os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+    json.dump({"link": [a, b], "orig_cost": orig, "bump": bump, "quiet_s": quiet, "results": summary},
+              open(out, "w"), indent=1)
+    print("saved", out)
 
 
 if __name__ == "__main__":
@@ -136,13 +190,28 @@ if __name__ == "__main__":
     sub = p.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("gen"); g.add_argument("topo"); g.add_argument("out"); g.add_argument("--image", default=IMAGE)
     e = sub.add_parser("extract"); e.add_argument("meta"); e.add_argument("out")
-    f = sub.add_parser("fail"); f.add_argument("meta"); f.add_argument("a"); f.add_argument("b")
-    f.add_argument("--quiet", type=float, default=8.0, help="seconds without change before we call it converged")
+    for name in ("fail", "recover", "cost", "bench"):
+        c = sub.add_parser(name); c.add_argument("meta"); c.add_argument("a"); c.add_argument("b")
+        c.add_argument("--quiet", type=float, default=8.0, help="seconds without change before we call it converged")
+        if name == "cost":
+            c.add_argument("new_cost", type=int)
+        if name == "bench":
+            c.add_argument("--runs", type=int, default=3)
+            c.add_argument("--bump", type=int, default=5, help="cost_up sets the cost to original x this")
+            c.add_argument("--out", default="results/ospf_bench.json")
     a = p.parse_args()
     if a.cmd == "gen":
         gen(a.topo, a.out, a.image)
     elif a.cmd == "extract":
-        json.dump(snapshot(json.load(open(a.meta))), open(a.out, "w"), indent=1)
+        json.dump(snapshot(json.load(open(a.meta))), open(a.out, "w"), indent=2)
         print("saved", a.out)
     else:
-        fail(json.load(open(a.meta)), a.a, a.b, a.quiet)
+        meta = json.load(open(a.meta))
+        if a.cmd == "bench":
+            bench(meta, a.a, a.b, a.runs, a.quiet, a.bump, a.out)
+        else:
+            act = {"fail": lambda: do_fail(meta, a.a, a.b), "recover": lambda: do_recover(meta, a.a, a.b),
+                   "cost": lambda: do_cost(meta, a.a, a.b, getattr(a, "new_cost", 0))}[a.cmd]
+            t = timed(meta, act, a.quiet)
+            print(f"{a.cmd} {a.a}-{a.b}: tables stopped changing {t:.2f}s after the action "
+                  f"(polling granularity is roughly the time one snapshot takes)")
