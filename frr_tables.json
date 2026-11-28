@@ -1,0 +1,156 @@
+{
+ "A": {
+  "A": {
+   "next_hops": [],
+   "cost": 1
+  },
+  "B": {
+   "next_hops": [
+    "B"
+   ],
+   "cost": 2
+  },
+  "C": {
+   "next_hops": [
+    "B"
+   ],
+   "cost": 4
+  },
+  "D": {
+   "next_hops": [
+    "B"
+   ],
+   "cost": 5
+  },
+  "E": {
+   "next_hops": [
+    "B"
+   ],
+   "cost": 7
+  }
+ },
+ "B": {
+  "A": {
+   "next_hops": [
+    "A"
+   ],
+   "cost": 2
+  },
+  "B": {
+   "next_hops": [],
+   "cost": 1
+  },
+  "C": {
+   "next_hops": [
+    "C"
+   ],
+   "cost": 3
+  },
+  "D": {
+   "next_hops": [
+    "C"
+   ],
+   "cost": 4
+  },
+  "E": {
+   "next_hops": [
+    "C"
+   ],
+   "cost": 6
+  }
+ },
+ "C": {
+  "A": {
+   "next_hops": [
+    "B"
+   ],
+   "cost": 4
+  },
+  "B": {
+   "next_hops": [
+    "B"
+   ],
+   "cost": 3
+  },
+  "C": {
+   "next_hops": [],
+   "cost": 1
+  },
+  "D": {
+   "next_hops": [
+    "D"
+   ],
+   "cost": 2
+  },
+  "E": {
+   "next_hops": [
+    "D",
+    "E"
+   ],
+   "cost": 4
+  }
+ },
+ "D": {
+  "A": {
+   "next_hops": [
+    "C"
+   ],
+   "cost": 5
+  },
+  "B": {
+   "next_hops": [
+    "C"
+   ],
+   "cost": 4
+  },
+  "C": {
+   "next_hops": [
+    "C"
+   ],
+   "cost": 2
+  },
+  "D": {
+   "next_hops": [],
+   "cost": 1
+  },
+  "E": {
+   "next_hops": [
+    "E"
+   ],
+   "cost": 3
+  }
+ },
+ "E": {
+  "A": {
+   "next_hops": [
+    "C",
+    "D"
+   ],
+   "cost": 7
+  },
+  "B": {
+   "next_hops": [
+    "C",
+    "D"
+   ],
+   "cost": 6
+  },
+  "C": {
+   "next_hops": [
+    "C",
+    "D"
+   ],
+   "cost": 4
+  },
+  "D": {
+   "next_hops": [
+    "D"
+   ],
+   "cost": 3
+  },
+  "E": {
+   "next_hops": [],
+   "cost": 1
+  }
+ }
+}
